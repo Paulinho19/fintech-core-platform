@@ -1,8 +1,6 @@
 # Fintech Core Platform 💰
 
-Core Banking / Gateway de Pagamentos Pix simulado, construído de forma incremental como estudo de arquitetura hexagonal + DDD para atuação Sênior em ambiente bancário. Contexto completo do projeto, requisitos e roteiro de mentoria em [`CLAUDE.md`](./CLAUDE.md); progresso detalhado, tarefa a tarefa, em [`PROGRESS.md`](./PROGRESS.md).
-
-> Este README é documentação viva: é atualizado a cada mudança relevante, não escrito uma vez só.
+Core Banking / Gateway de Pagamentos Pix simulado, construído com arquitetura hexagonal + DDD.
 
 ## Stack
 
@@ -45,11 +43,11 @@ cd backend
 ./mvnw clean install
 ```
 
-## Status atual (Etapa 1 — Setup)
+## Status atual
 
-Esqueleto multi-módulo funcional: aplicação Spring Boot sobe conectada a Postgres e Redis, Virtual Threads habilitadas (RNF03), infra local via Docker Compose definida.
+Esqueleto multi-módulo funcional: aplicação Spring Boot sobe conectada a Postgres e Redis, Virtual Threads habilitadas, infra local via Docker Compose definida.
 
-**Ainda não implementado** (propositalmente — é o próximo passo, Etapa 2 em diante):
+**Ainda não implementado:**
 - Domínio (`domain/`) e casos de uso (`application/`) estão vazios — só a estrutura que os vai hospedar
 - Sem adapters REST/JPA/Kafka escritos em `infrastructure/`
 - Sem Flyway migrations, sem Security/JWT configurado, sem frontend
