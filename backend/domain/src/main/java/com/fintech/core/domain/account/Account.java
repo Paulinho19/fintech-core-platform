@@ -14,6 +14,20 @@ import java.util.Objects;
  * o mapeamento JPA que a camada de infrastructure vai fazer por cima dele
  * (a entidade JPA e um mapper para/de este objeto, nunca o objeto em si -
  * RNF01).
+ *
+ * Thread-safety: debit()/credit() sao synchronized porque o par
+ * "ler saldo -> checar -> escrever saldo" nao e atomico. Sem isso, duas
+ * threads concorrentes podem ler o mesmo saldo antes de qualquer uma
+ * escrever, ambas passarem na checagem, e uma escrita sobrescrever a outra
+ * (lost update) - dinheiro sai duas vezes, saldo final reflete só uma.
+ *
+ * Isso protege apenas UMA instancia da JVM. Com multiplas instancias da
+ * aplicacao (varios pods no Kubernetes), cada uma tem seu proprio objeto
+ * Account carregado do banco - o monitor lock daqui nao existe entre
+ * processos diferentes. A protecao real contra concorrencia distribuida
+ * (RNF02) e feita na camada de infrastructure: Pessimistic Locking no
+ * Postgres (trava a linha durante a transacao) + Distributed Lock via
+ * Redisson (trava entre instancias antes mesmo de tocar no banco).
  */
 public final class Account {
 
@@ -40,7 +54,7 @@ public final class Account {
      * o limite diario de transferencia - nessa ordem, porque saldo e uma
      * verificacao mais barata e mais fundamental que limite.
      */
-    public void debit(Money amount) {
+    public synchronized void debit(Money amount) {
         requirePositive(amount);
         if (balance.isLessThan(amount)) {
             throw new InsufficientFundsException(id, balance, amount);
@@ -53,13 +67,13 @@ public final class Account {
         dailyTransferredAmount = attemptedTotal;
     }
 
-    public void credit(Money amount) {
+    public synchronized void credit(Money amount) {
         requirePositive(amount);
         balance = balance.plus(amount);
     }
 
     /** Chamado por um job noturno/agendado - fora do escopo deste agregado decidir quando. */
-    public void resetDailyLimit() {
+    public synchronized void resetDailyLimit() {
         dailyTransferredAmount = Money.zero(balance.currency());
     }
 
@@ -73,15 +87,18 @@ public final class Account {
         return id;
     }
 
-    public Money balance() {
+    // synchronized aqui tambem: sem isso, uma leitura concorrente a debit()
+    // poderia ver um valor de balance desatualizado (garantia de visibilidade
+    // do Java Memory Model exige sincronizacao dos dois lados, nao so de quem escreve).
+    public synchronized Money balance() {
         return balance;
     }
 
     public Money dailyTransferLimit() {
-        return dailyTransferLimit;
+        return dailyTransferLimit; // final - imutavel, nao precisa sincronizar
     }
 
-    public Money dailyTransferredAmount() {
+    public synchronized Money dailyTransferredAmount() {
         return dailyTransferredAmount;
     }
 }
