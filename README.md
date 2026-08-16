@@ -41,11 +41,17 @@ O domínio não pode depender de Spring ou JPA. Isso é garantido em **tempo de 
    ```
 3. Validar: `http://localhost:8080/actuator/health` → `{"status":"UP"}`.
 
+## Domínio
+
+Modelado em `domain/` como código Java puro (sem framework):
+
+- **Value objects:** `Money` (quantia + moeda, sempre não-negativa), `PixKey` (sealed: `CpfKey`, `EmailKey`, `PhoneKey`, `EvpKey`, cada um validando seu próprio formato)
+- **Agregados:** `Account` (saldo e limite diário de transferência, únicas operações válidas são `debit()`/`credit()`), `Transaction` (máquina de estados: `PENDING → COMPLETED/FAILED`, `COMPLETED → REVERSED`)
+- **Resultado de operação:** `TransferResult` (sealed: `Success`/`Failure`), consumido via pattern matching exaustivo em vez de exceções para falhas de negócio esperadas
+- **Eventos de domínio:** `PixTransferCompleted`, `PixTransferFailed`
+
+Um teste de arquitetura (`DomainPurityArchTest`) verifica automaticamente que nenhuma classe em `domain/` depende de Spring ou JPA.
+
 ## Status atual
 
-Esqueleto multi-módulo funcional: aplicação Spring Boot sobe conectada a Postgres e Redis, Virtual Threads habilitadas, infra local via Docker Compose definida.
-
-**Ainda não implementado:**
-- Domínio (`domain/`) e casos de uso (`application/`) estão vazios — só a estrutura que os vai hospedar
-- Sem adapters REST/JPA/Kafka escritos em `infrastructure/`
-- Sem Flyway migrations, sem Security/JWT configurado, sem frontend
+Domínio implementado e testado. Casos de uso (`application/`) ainda vazios. Sem adapters REST/JPA/Kafka em `infrastructure/`, sem Flyway migrations, sem Security/JWT configurado, sem frontend.
