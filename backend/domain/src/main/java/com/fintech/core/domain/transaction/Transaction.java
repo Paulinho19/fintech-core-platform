@@ -37,6 +37,17 @@ public final class Transaction {
             Instant.now(), TransactionStatus.PENDING, null);
     }
 
+    /**
+     * Reconstroi uma transacao a partir de estado ja persistido (ex: linha
+     * do banco). Diferente de createPending(), nao aplica regras de criacao
+     * de negocio - os dados vindos do banco ja sao confiaveis por definicao,
+     * essa fabrica so existe para o mapper de infrastructure usar.
+     */
+    public static Transaction reconstitute(TransactionId id, AccountId sourceAccountId, PixKey targetKey,
+            Money amount, Instant createdAt, TransactionStatus status, Instant settledAt) {
+        return new Transaction(id, sourceAccountId, targetKey, amount, createdAt, status, settledAt);
+    }
+
     public void complete() {
         transitionTo(TransactionStatus.COMPLETED);
         settledAt = Instant.now();
